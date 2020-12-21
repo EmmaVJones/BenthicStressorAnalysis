@@ -1,0 +1,28 @@
+---
+title: "Benthic Stressor Analyses Tool Major Updates"
+author: "Emma Jones"
+date: "12/16/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Benthic Stressor Analyses Tool Major Updates
+
+This version of the Benthic Stressor Analysis tool restructures the data acquisition process and increases internal validation procedures as well as streamlines the process to update probabilistic estimate data from the Freshwater ProbMon program. 
+
+Changes include:
+* 2020 IR ProbMon data into application
+    + Explicit script to easily update underlying data in the future.
+* Convert Logi query/data manipulation process to a seamless process that queries data directly from CEDS ODS for:
+    + Field Data
+    + Analytes
+    + Metals
+    + Benthics (from pinned benthic data on Connect service)
+* Additional basin-specific analysis option. Superbasin will be retained to increase n in low n basins
+* Spatial analysis to prepopulate ecoregion and basin (superbasin) station information
+* Addition of WQS to report plots
+* Station maps to report
+* Language map to report suggested endpoints not standards
