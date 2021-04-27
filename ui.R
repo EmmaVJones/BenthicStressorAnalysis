@@ -44,10 +44,33 @@ shinyUI(fluidPage(theme="yeti.css",
                              tabPanel("How To",
                                       #htmlOutput("TMDLBenthicStressorToolHowTo")),
                                       h3('Requires updating')),
-                             tabPanel("Data Acquisition",
-                                      h3('Requires updating')),
+                             # tabPanel("Data Acquisition",
+                             #          h3('Requires updating')),
                              tabPanel("Data Upload",
-                                      h3('Requires updating')),
+                                      column(4,wellPanel(
+                                        h4("Instructions:"),
+                                        p("Please upload site chemistry and field parameter data as a flat file (.csv). All data uploaded 
+                                          to the app must be formatted correctly. If you are unsure whether your data is in the correct 
+                                          format, please download the 'template.csv' file first to check your data structure."),
+                                        downloadButton('downloadTemplate',"Download template.csv"),
+                                        fileInput('siteData','Upload Site (flat file)',accept='.csv',width='100%'))),
+                                      column(8,tabsetPanel(
+                                        tabPanel("User Data",
+                                                 h3("User Uploaded Data"),
+                                                 h5("Please fill in the Stream Order field appropriately. Basin, SuperBasin, and Ecoregion are autopopulated using
+                                                    the Latitude and Longitude fields from the uploaded dataset. Manual override on the Ecoregion field is possible 
+                                                    if a different ecoregion better fits your station. Please consult your Regional Biologist for this information."),
+                                                 column(5,selectInput("StreamOrder",label=h4("Stream Order"),
+                                                                      c(" "="NA","First Order", "Second Order", "Third Order", "Fourth Order", "Fifth Order"),
+                                                                      selected=1)),
+                                                 uiOutput('Ecoregion_'),
+                                                 uiOutput('BasinSuperBasin_'),
+                                                 DT::dataTableOutput('inputTable'),
+                                                 hr(),
+                                                 h3("Summary Statistics"),
+                                                 DT::dataTableOutput('summaryStats'))))),
+                                                 #div(style = 'overflow-x: scroll',tableOutput("summaryStats")))#,
+                                      
                              tabPanel("Data Summary",
                                       h3('Requires updating')),
                              tabPanel("Statewide Map",

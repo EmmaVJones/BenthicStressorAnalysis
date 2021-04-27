@@ -39,6 +39,7 @@ vignettes/*.pdf
 .Renviron
 
 
-
+oldTemplatesToReproduce/
 data/
 *.yml
+testingData/
