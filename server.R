@@ -52,23 +52,32 @@ shinyServer(function(input, output, session) {
   removeUnits_envDataDF(read.csv(inFile$datapath)) }) # Remove Units for all analysis purposes
   
   # Suggest spatial information based on REST service and spatial joins
-  initialSpatialSuggestions <- reactive({req(inputFile())
-    spatialSuggestions(inputFile()) })
+  observe({ req(inputFile())
+    userData$initialSpatialSuggestions <- spatialSuggestions(inputFile())
+    userData$allStats <- statsFunction(inputFile())})
   
   # User chooses station to work through
   output$stationSelection_ <- renderUI({req(inputFile())
     selectInput('stationSelection', label = h4('Station Selection'), choices = unique(inputFile()$StationID))})
   
-  stationInitialSpatialSuggestions <- reactive({req(inputFile(), initialSpatialSuggestions(), input$stationSelection)
-    filter(initialSpatialSuggestions(), WQM_STA_ID %in% input$stationSelection)})
+  stationInitialSpatialSuggestions <- reactive({req(inputFile(), userData$initialSpatialSuggestions, input$stationSelection)
+    filter(userData$initialSpatialSuggestions, WQM_STA_ID %in% input$stationSelection)})
   
-  output$StreamOrder_ <- renderUI({req(inputFile(), initialSpatialSuggestions(), input$stationSelection)
-    selectInput("StreamOrder", label = h4("1:100k Stream Order"),
+  # Save data for later use
+  observeEvent(input$begin, {
+    userData$siteData <- filter(inputFile(), StationID %in% input$stationSelection) 
+    userData$siteStats <- filter(userData$allStats, StationID %in% input$stationSelection)})
+  
+  
+  output$StreamOrder_ <- renderUI({req(inputFile(), userData$initialSpatialSuggestions, input$stationSelection)
+    list(selectInput("StreamOrder", label = h4("1:100k Stream Order"),
                 c(" "="NA","First Order", "Second Order", "Third Order", "Fourth Order", "Fifth Order"),
-                selected=1)})
+                selected=1),
+         helpText("Please use the LAYER NAME on the GIS Staff App (EMBED LINK) to ensure you are referencing the correct
+                  1:100k Strahler Order in order to accurately compare your site to the freshwater probabilistic estimates.")) })
   
   # Suggest Ecoregion for selected station
-  output$Ecoregion_ <- renderUI({req(inputFile(), initialSpatialSuggestions())
+  output$Ecoregion_ <- renderUI({req(inputFile(), userData$initialSpatialSuggestions)
     list(selectInput("Ecoregion", label=h4("Ecoregion"), 
                 choices = c("Piedmont", "Middle Atlantic Coastal Plain", "Northern Piedmont", "Southeastern Plains",          
                             "Blue Ridge", "Ridge and Valley", "Central Appalachians", NA),                
@@ -77,11 +86,11 @@ shinyServer(function(input, output, session) {
                   to calculate estimates, so it cannot be used for further analyses.")) })
   
   # Suggest Basin, SuperBasin for selected station
-  output$BasinSuperBasin_ <- renderUI({req(inputFile(), initialSpatialSuggestions())
+  output$BasinSuperBasin_ <- renderUI({req(inputFile(), userData$initialSpatialSuggestions)
     list(selectInput("Basin", label=h4("Basin"), 
                      choices = unique( subbasins$ProbBasin),                
                      selected= stationInitialSpatialSuggestions()$ProbBasin),
-         selectInput("Superbasin", label=h4("Superbasin"), 
+         selectInput("Superbasin (not required)", label=h4("Superbasin"), 
                      choices = unique( subbasins$ProbSuperBasin),                
                      selected= stationInitialSpatialSuggestions()$ProbSuperBasin)) })
   
@@ -90,44 +99,32 @@ shinyServer(function(input, output, session) {
     shinyjs::toggleState("begin", !is.null(input$stationSelection) && input$stationSelection != "" && input$StreamOrder != "NA" && 
                            !is.na(input$Ecoregion) && input$Ecoregion != "Middle Atlantic Coastal Plain" && !is.na(input$Basin ))  })
       
-  
-  
-  
-  
-  
-  output$test <- renderPrint({req(initialSpatialSuggestions(), input$stationSelection)
-    input$StreamOrder})#stationInitialSpatialSuggestions()$EPA_ECO_US_L3NAME })#filter(initialSpatialSuggestions(), WQM_STA_ID %in% input$stationSelection)})
-  
-  
-  
-  
-  # # Display user input data
-  # output$inputTable <- DT::renderDataTable({
-  #   DT::datatable(inputFile(),escape=F, rownames = F,
-  #                 options=list(scrollX = TRUE, scrollY = "300px",pageLength=nrow(inputFile())))})
-  # 
-  # # Calculate statistics on input table
-  # stats <- reactive({
-  #   req(input$siteData)
-  #   
-  #   # Deal with columns of only NA coming in as logical
-  #   dat <- inputFile() %>% select(-(Temp))
-  #   dat <- japply( dat, which(sapply(dat, class)=="logical"), as.numeric )
-  #   
-  #   datamean <- select(dat,-c(StationID,CollectionDateTime,Longitude,Latitude))%>%
-  #     summarise_all(funs(format(mean(., na.rm = TRUE),digits=4)))%>%mutate(Statistic="Average")
-  #   datamean[datamean %in% c("NaN","NA")] <- NA
-  #   datamedian <- select(dat,-c(StationID,CollectionDateTime,Longitude,Latitude))%>%
-  #     summarise_all(funs(format(median(., na.rm = TRUE),digits=4)))%>%mutate(Statistic="Median")
-  #   datamedian[datamedian %in% c("NaN","NA")] <- NA
-  #   data_all <- rbind(datamean,datamedian)%>%select(Statistic,everything())
-  #   return(data_all)
-  # })
+  # Display user input data
+  output$inputTable <- DT::renderDataTable({req(userData$siteData, input$begin)
+    DT::datatable(userData$siteData %>% 
+                    mutate(CollectionDateTime = as.character(CollectionDateTime)),
+                  escape=F, rownames = F, selection = 'none',
+                  options=list(dom = 'it', scrollX = TRUE, scrollY = "300px",pageLength=nrow(userData$siteData)))})
+
+
   # # Save objects to reactive values for better organization, keep stats() separate to enable easy req() calls 
   # #   for later functions
   # observe(userData$stats <- stats())
   # 
   # observe(userData$stats_wTemp <- inputFile())
+  
+  # Display summary statistics
+  output$summaryStats <- DT::renderDataTable({req(userData$siteStats, input$begin)
+    DT::datatable(userData$siteStats,escape=F, rownames = F, selection = 'none',
+                  options=list(dom = 'it', scrollX = TRUE, scrollY = "150px",pageLength=nrow(userData$siteStats))) %>% 
+      formatRound(columns=c("pH","DO","TN", "TP", "TotalHabitat",  "LRBS", "MetalsCCU", 
+                            "SpCond", "TDS", "DSulfate", "DChloride", "DPotassium", "DSodium"), digits=3)})
+  
+  
+  # output$test <- renderPrint({#req(initialSpatialSuggestions(), input$stationSelection)
+  #   userData$siteData})#stationInitialSpatialSuggestions()$EPA_ECO_US_L3NAME })#filter(initialSpatialSuggestions(), WQM_STA_ID %in% input$stationSelection)})
+  # 
+  
   
   
 })

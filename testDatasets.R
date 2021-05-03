@@ -39,18 +39,38 @@ pool <- dbPool(
 userData1 <- list()
 
 # Bring in user uploaded (mulistation) data
-inFile <- removeUnits_envDataDF(read.csv("testingData/TinkerMultistation/BSAtemplateData4ATKR.csv"))
+inputFile1 <- removeUnits_envDataDF(read.csv("testingData/TinkerMultistation/BSAtemplateData4ATKR.csv"))
 
 # Suggest Ecoregion, Basin, Superbasin, and Order information 
 
 ## First pull this info from REST service and spatial joins
-initialSpatialSuggestions1 <- spatialSuggestions(inFile)
+initialSpatialSuggestions1 <- spatialSuggestions(inputFile1)
 
 ## user selects station
 stationSelection1 <- "4ATKR000.69"
 
+# Subset site data
+siteData <- filter(inputFile1, StationID %in% stationSelection1)
 
 
+  
+  
+  #summarise_all(list(min, max))
+  
+  summarise_at(vars(pH:DSodium), median, na.rm = TRUE)
+glimpse(stats)
 
+# Deal with columns of only NA coming in as logical
+dat <- inputFile() %>% select(-(Temp))
+dat <- japply( dat, which(sapply(dat, class)=="logical"), as.numeric )
+
+datamean <- select(dat,-c(StationID,CollectionDateTime,Longitude,Latitude))%>%
+  summarise_all(funs(format(mean(., na.rm = TRUE),digits=4)))%>%mutate(Statistic="Average")
+datamean[datamean %in% c("NaN","NA")] <- NA
+datamedian <- select(dat,-c(StationID,CollectionDateTime,Longitude,Latitude))%>%
+  summarise_all(funs(format(median(., na.rm = TRUE),digits=4)))%>%mutate(Statistic="Median")
+datamedian[datamedian %in% c("NaN","NA")] <- NA
+data_all <- rbind(datamean,datamedian)%>%select(Statistic,everything())
+return(data_all)
 
 

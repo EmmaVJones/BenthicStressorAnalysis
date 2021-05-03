@@ -54,7 +54,7 @@ addUnits_envDataDF <- function(envData){
                 `SpCond (uS/cm)` = SpCond,  `TDS (mg/L)` = TDS,  
                 `DSulfate (mg/L)` = DSulfate, `DChloride (mg/L)` = DChloride, 
                 `DPotassium (mg/L)` = DPotassium, `DSodium (mg/L)` = DSodium,
-                `Temperature (C)` = Temp))
+                `Temperature (C)` = Temp) %>% as_tibble())
 }
 
 removeUnits_envDataDF <- function(envData){
@@ -64,7 +64,7 @@ removeUnits_envDataDF <- function(envData){
                 SpCond = "SpCond..uS.cm.",  TDS = "TDS..mg.L." ,  
                 DSulfate = "DSulfate..mg.L.", DChloride= "DChloride..mg.L.", 
                 DPotassium = "DPotassium..mg.L.", DSodium = "DSodium..mg.L.",
-                Temp = "Temperature..C."))
+                Temp = "Temperature..C.") %>% as_tibble())
 }
 
 
@@ -135,3 +135,22 @@ spatialSuggestions <- function(inFile){
     return(zOut)
   }
 }
+
+
+# Site Stats Function
+statsFunction <- function(siteData){
+  siteDataPrep <- siteData %>% 
+    dplyr::select(-c(Temp, CollectionDateTime, Longitude, Latitude)) %>% 
+    mutate(across(where(is.logical), as.numeric)) %>% 
+    mutate(across(where(is.integer), as.numeric)) %>% 
+    group_by(StationID) 
+  bind_rows(siteDataPrep %>% 
+              summarise(across(pH:DSodium, ~ mean(.x, na.rm = TRUE))) %>% 
+              mutate(Statistic = 'Average'),
+            siteDataPrep %>% 
+              summarise(across(pH:DSodium, ~ median(.x, na.rm = TRUE))) %>% 
+              mutate(Statistic = 'Median')) %>% 
+    dplyr::select(StationID, Statistic, everything()) %>% 
+    arrange(StationID, Statistic)
+}
+#statsFunction(inputFile1)

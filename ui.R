@@ -1,6 +1,7 @@
 shinyUI(fluidPage(theme="yeti.css",
+                  useShinyjs(),
                   navbarPage("VDEQ Benthic Stressor Analysis Tool",
-                             useShinyjs(),
+                             
                              #tabPanel("About",fluidRow(column(10,
                             #                                  h4("This app was created to assist in the identification of benthic stressors 
                             #                                     to aquatic communities."),
