@@ -57,8 +57,7 @@ shinyUI(fluidPage(theme="yeti.css",
                                         helpText("The uploaded spreadsheet may now contain more than one station."),
                                         downloadButton('downloadTemplate',"Download template.csv"),
                                         fileInput('siteData','Upload Site (flat file)',accept='.csv',width='100%'))),
-                                      column(8,tabsetPanel(
-                                        tabPanel("User Data",
+                                      column(8,
                                                  h3("User Uploaded Data"),
                                                  h5("Please select a station to analyze and fill in the 1:100k Stream Order field appropriately. 
                                                     Basin, SuperBasin, and Ecoregion are autopopulated using the Latitude and Longitude fields 
@@ -77,9 +76,8 @@ shinyUI(fluidPage(theme="yeti.css",
                                                  DT::dataTableOutput('inputTable'),
                                                  br(),
                                                  h3("Summary Statistics"),
-                                                 DT::dataTableOutput('summaryStats'))))),
-                                                 #div(style = 'overflow-x: scroll',tableOutput("summaryStats")))#,
-                                      
+                                                 DT::dataTableOutput('summaryStats'))),
+
                              tabPanel("Data Summary",
                                       h3('Requires updating')),
                              tabPanel("Statewide Map",

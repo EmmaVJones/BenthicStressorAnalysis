@@ -25,7 +25,7 @@ subbasinVAHU6crosswalk <- read_csv('data/basinAssessmentReg_clb_EVJ.csv') %>%
   mutate(SUBBASIN = ifelse(is.na(SUBBASIN), BASIN_NAME, SUBBASIN))
 # geospatialTemplate <- z[0,] %>% st_drop_geometry()
 # saveRDS(geospatialTemplate, 'geospatialTemplate.RDS')
-geospatialTemplate <- readRDS('geospatialTemplate.RDS')
+geospatialTemplate <- readRDS('data/geospatialTemplate.RDS')
 
 pool <- dbPool(
   drv = odbc::odbc(),

@@ -1,29 +1,26 @@
-# source('global.R')
-# 
-# ecoregion <- st_read('data/GIS/vaECOREGIONlevel3__proj84.shp')
-# subbasins <- st_read('data/GIS/DEQ_VAHUSB_subbasins_EVJ.shp') %>%
-#   rename('SUBBASIN' = 'SUBBASIN_1') %>%
-#   mutate(SUBBASIN = ifelse(is.na(SUBBASIN), as.character(BASIN_NAME), as.character(SUBBASIN))) %>%
-#   mutate(ProbBasin = case_when(SUBBASIN == 'Big Sandy River' ~ 'Big Sandy',
-#                                SUBBASIN == 'Chowan River' ~ 'Chowan',
-#                                SUBBASIN %in% c('James River - Lower', "James River - Middle", "James River - Upper") ~ 'James',
-#                                SUBBASIN == 'New River' ~ 'New',
-#                                SUBBASIN == 'Potomac River' ~ 'Potomac',
-#                                SUBBASIN == 'Shenandoah River' ~ 'Shenandoah',
-#                                SUBBASIN == 'Rappahannock River' ~ 'Rappahannock',
-#                                SUBBASIN == 'Roanoke River' ~ 'Roanoke',
-#                                SUBBASIN == 'Clinch and Powell Rivers' ~ 'Clinch',
-#                                SUBBASIN == 'Holston River' ~ 'Holston',
-#                                SUBBASIN == 'York River' ~ 'York',
-#                                TRUE ~ as.character(NA)),
-#          ProbSuperBasin = case_when(SUBBASIN %in% c('Big Sandy River','Holston River','Clinch and Powell Rivers') ~ 'Tennessee',
-#                                     SUBBASIN %in% c('Potomac River', 'Shenandoah River') ~ 'Potomac-Shenandoah',
-#                                     SUBBASIN %in% c('Rappahannock River', 'York River') ~ 'Rappahannock-York',
-#                                     TRUE ~ as.character(NA)))
-# subbasinVAHU6crosswalk <- read_csv('data/basinAssessmentReg_clb_EVJ.csv') %>%
-#   filter(!is.na(SubbasinVAHU6code)) %>%
-#   mutate(SUBBASIN = ifelse(is.na(SUBBASIN), BASIN_NAME, SUBBASIN))
-# geospatialTemplate <- readRDS('geospatialTemplate.RDS')
+source('global.R')
+
+ecoregion <- st_read('data/GIS/vaECOREGIONlevel3__proj84.shp')
+subbasins <- st_read('data/GIS/DEQ_VAHUSB_subbasins_EVJ.shp') %>%
+  rename('SUBBASIN' = 'SUBBASIN_1') %>%
+  mutate(SUBBASIN = ifelse(is.na(SUBBASIN), as.character(BASIN_NAME), as.character(SUBBASIN))) %>%
+  mutate(ProbBasin = case_when(SUBBASIN == 'Big Sandy River' ~ 'Big Sandy',
+                               SUBBASIN == 'Chowan River' ~ 'Chowan',
+                               SUBBASIN %in% c('James River - Lower', "James River - Middle", "James River - Upper") ~ 'James',
+                               SUBBASIN == 'New River' ~ 'New',
+                               SUBBASIN == 'Potomac River' ~ 'Potomac',
+                               SUBBASIN == 'Shenandoah River' ~ 'Shenandoah',
+                               SUBBASIN == 'Rappahannock River' ~ 'Rappahannock',
+                               SUBBASIN == 'Roanoke River' ~ 'Roanoke',
+                               SUBBASIN == 'Clinch and Powell Rivers' ~ 'Clinch',
+                               SUBBASIN == 'Holston River' ~ 'Holston',
+                               SUBBASIN == 'York River' ~ 'York',
+                               TRUE ~ as.character(NA)),
+         ProbSuperBasin = case_when(SUBBASIN %in% c('Big Sandy River','Holston River','Clinch and Powell Rivers') ~ 'Tennessee',
+                                    SUBBASIN %in% c('Potomac River', 'Shenandoah River') ~ 'Potomac-Shenandoah',
+                                    SUBBASIN %in% c('Rappahannock River', 'York River') ~ 'Rappahannock-York',
+                                    TRUE ~ as.character(NA)))
+
 
 
 shinyServer(function(input, output, session) {
@@ -54,7 +51,7 @@ shinyServer(function(input, output, session) {
   
   # Suggest spatial information based on REST service and spatial joins
   observe({ req(inputFile())
-    userData$initialSpatialSuggestions <- spatialSuggestions(inputFile())
+    userData$initialSpatialSuggestions <- spatialSuggestions(inputFile(),  pool, subbasinVAHU6crosswalk, subbasins, ecoregion)
     userData$allStats <- statsFunction(inputFile())})
   
   # User chooses station to work through
@@ -107,17 +104,10 @@ shinyServer(function(input, output, session) {
                   escape=F, rownames = F, selection = 'none',
                   options=list(dom = 'it', scrollX = TRUE, scrollY = "300px",pageLength=nrow(userData$siteData)))})
 
-
-  # # Save objects to reactive values for better organization, keep stats() separate to enable easy req() calls 
-  # #   for later functions
-  # observe(userData$stats <- stats())
-  # 
-  # observe(userData$stats_wTemp <- inputFile())
-  
   # Display summary statistics
   output$summaryStats <- DT::renderDataTable({req(userData$siteStats, input$begin)
     DT::datatable(userData$siteStats,escape=F, rownames = F, selection = 'none',
-                  options=list(dom = 'it', scrollX = TRUE, scrollY = "150px",pageLength=nrow(userData$siteStats))) %>% 
+                  options=list(dom = 'it', scrollX = TRUE, scrollY = "100px",pageLength=nrow(userData$siteStats))) %>% 
       formatRound(columns=c("pH","DO","TN", "TP", "TotalHabitat",  "LRBS", "MetalsCCU", 
                             "SpCond", "TDS", "DSulfate", "DChloride", "DPotassium", "DSodium"), digits=3)})
   

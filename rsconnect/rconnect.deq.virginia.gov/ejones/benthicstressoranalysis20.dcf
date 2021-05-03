@@ -1,0 +1,13 @@
+name: benthicstressoranalysis20
+title: BenthicStressorAnalysis2.0
+username: ejones
+account: ejones
+server: rconnect.deq.virginia.gov
+hostUrl: https://rconnect.deq.virginia.gov/__api__
+appId: 241
+bundleId: 2003
+url: https://rconnect.deq.virginia.gov/BenthicStressorAnalysisToolv2/
+when: 1620065279.67687
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: DataOrganization.Rmd|README.md|testDatasets.R|ToolMajorUpdates.Rmd|oldTemplatesToReproduce|testingData
