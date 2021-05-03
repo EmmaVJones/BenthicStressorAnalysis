@@ -1,5 +1,6 @@
 shinyUI(fluidPage(theme="yeti.css",
                   navbarPage("VDEQ Benthic Stressor Analysis Tool",
+                             useShinyjs(),
                              #tabPanel("About",fluidRow(column(10,
                             #                                  h4("This app was created to assist in the identification of benthic stressors 
                             #                                     to aquatic communities."),
@@ -41,9 +42,9 @@ shinyUI(fluidPage(theme="yeti.css",
                             #                                            instructions.")),
                             #                                  h4(strong("See the 'How To' tab for additional instructions on pulling data
                             #                                            necessary to run the tool and report."))))),
-                             tabPanel("How To",
-                                      #htmlOutput("TMDLBenthicStressorToolHowTo")),
-                                      h3('Requires updating')),
+                             # tabPanel("How To",
+                             #          #htmlOutput("TMDLBenthicStressorToolHowTo")),
+                             #          h3('Requires updating')),
                              # tabPanel("Data Acquisition",
                              #          h3('Requires updating')),
                              tabPanel("Data Upload",
@@ -52,19 +53,24 @@ shinyUI(fluidPage(theme="yeti.css",
                                         p("Please upload site chemistry and field parameter data as a flat file (.csv). All data uploaded 
                                           to the app must be formatted correctly. If you are unsure whether your data is in the correct 
                                           format, please download the 'template.csv' file first to check your data structure."),
+                                        helpText("The uploaded spreadsheet may now contain more than one station."),
                                         downloadButton('downloadTemplate',"Download template.csv"),
                                         fileInput('siteData','Upload Site (flat file)',accept='.csv',width='100%'))),
                                       column(8,tabsetPanel(
                                         tabPanel("User Data",
                                                  h3("User Uploaded Data"),
-                                                 h5("Please fill in the Stream Order field appropriately. Basin, SuperBasin, and Ecoregion are autopopulated using
-                                                    the Latitude and Longitude fields from the uploaded dataset. Manual override on the Ecoregion field is possible 
-                                                    if a different ecoregion better fits your station. Please consult your Regional Biologist for this information."),
-                                                 column(5,selectInput("StreamOrder",label=h4("Stream Order"),
-                                                                      c(" "="NA","First Order", "Second Order", "Third Order", "Fourth Order", "Fifth Order"),
-                                                                      selected=1)),
-                                                 uiOutput('Ecoregion_'),
-                                                 uiOutput('BasinSuperBasin_'),
+                                                 h5("Please select a station to analyze and fill in the 1:100k Stream Order field appropriately. 
+                                                    Basin, SuperBasin, and Ecoregion are autopopulated using the Latitude and Longitude fields 
+                                                    from the uploaded dataset. Manual override on the Ecoregion field is possible if a different
+                                                    ecoregion better fits your station. Please consult your Regional Biologist for this information.
+                                                    When you have entered these prerequisites, click the Begin Analysis button to proceed through
+                                                    the application workflow."),
+                                                 uiOutput('stationSelection_'),
+                                                 fluidRow(column(4, uiOutput('StreamOrder_')),
+                                                          column(4, uiOutput('Ecoregion_')),
+                                                          column(4, uiOutput('BasinSuperBasin_'))),
+                                                 actionButton('begin', 'Begin Analysis'),
+                                                 verbatimTextOutput('test'),
                                                  DT::dataTableOutput('inputTable'),
                                                  hr(),
                                                  h3("Summary Statistics"),
