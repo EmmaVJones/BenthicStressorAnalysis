@@ -49,7 +49,8 @@ shinyServer(function(input, output, session) {
   inputFile <- reactive({inFile <- input$siteData
   if(is.null(inFile))
     return(NULL)
-  removeUnits_envDataDF(read.csv(inFile$datapath)) }) # Remove Units for all analysis purposes
+  removeUnits_envDataDF(read.csv(inFile$datapath)) %>% # Remove Units for all analysis purposes
+    mutate(CollectionDateTime = as.POSIXct(as.character(CollectionDateTime), format =  '%Y-%m-%dT%H:%M:%S'))}) 
   
   # Suggest spatial information based on REST service and spatial joins
   observe({ req(inputFile())

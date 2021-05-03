@@ -50,8 +50,9 @@ initialSpatialSuggestions1 <- spatialSuggestions(inputFile1)
 stationSelection1 <- "4ATKR000.69"
 
 # Subset site data
-siteData <- filter(inputFile1, StationID %in% stationSelection1)
-
+siteData <- filter(inputFile1, StationID %in% stationSelection1) %>% 
+  mutate(CollectionDateTime = as.POSIXct(as.character(CollectionDateTime), format =  '%Y-%m-%dT%H:%M:%S'))
+as.POSIXct(as.character(siteData$CollectionDateTime[1:5]), format =  '%Y-%m-%dT%H:%M:%S')
 
   
   
