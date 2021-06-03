@@ -56,7 +56,7 @@ onStop(function() {
 # Source functions from elsewhere
 source('functionsAndModules/riskColors.R')
 source('functionsAndModules/vlookup.R')
-
+source('functionsAndModules/CDFsubpopModule.R')
 
 
 # Local data for upload
@@ -87,6 +87,14 @@ cdfdata <- readRDS('data/IR2020probMonCDFestimates.RDS') %>%  ### UPDATED CDF DA
                                Indicator == 'Na' ~ 'Sodium',
                                TRUE ~ as.character(Indicator)))
 
+unitData <- read_csv('data/probParameterUnits.csv')
+# Temporary list that we can compare data to. Maybe we increase to benthic metrics, MCCU, + more in time
+probIndicators <- filter(unitData, AltName %in% #names(basicData))$AltName
+                           c("Dissolved Oxygen", "pH", "Specific Conductance", "Total Habitat", "Total Nitrogen", "Total Phosphorus", "Total Dissolved Solids",
+                             "Ammonia", "Total Nitrate Nitrogen", "Ortho Phosphorus", "Turbidity", "Total Suspended Solids", "Sodium", 
+                             "Potassium", "Chloride", "Sulfate", "Suspended Sediment Concentration Coarse", "Suspended Sediment Concentration Fine",
+                             "Arsenic", "Barium", "Beryllium", "Cadmium", "Chromium", "Copper", "Iron", "Lead", "Manganese", "Thallium", "Nickel",                                 
+                             "Silver", "Zinc", "Antimony", "Aluminum", "Selenium", "Hardness"))
 
 
 addUnits_envDataDF <- function(envData){
@@ -223,3 +231,40 @@ percentileTable <- function(statsTable, parameter, stationMetadata){
       ) ) }
 #percentileTable(stationStats1, 'SpCond', stationMetadata1)
 
+
+
+
+# Compare median of selected indicator to prob estimates
+subFunction <- function(cdftable,parameter,userInput){
+  return(filter(cdftable,Subpopulation%in%userInput & Indicator%in%parameter))
+}
+#View(subFunction(probEst, parameter = parameter, 'Virginia'))
+
+subFunction2 <- function(cdftable,userValue){
+  return(filter(cdftable,Estimate.P %in% userValue))
+}
+#subFunction2(subFunction(probEst, parameter = parameter, 'Virginia'), 48.14737)
+
+
+# CDF plot function
+cdfplot <- function(prettyParameterName,parameter,indicator,dataset,CDFsettings){
+  cdfsubset <- subFunction(cdfdata,parameter,indicator)
+  avg1 <- as.numeric(filter(dataset,Statistic==indicator)[,2])
+  avg <- subFunction2(cdfsubset,avg1)
+  med1 <- as.numeric(filter(dataset,Statistic==indicator)[,3]) 
+  med <- subFunction2(cdfsubset,med1)
+  m <- max(cdfsubset$NResp)
+  p1 <- ggplot(cdfsubset, aes(x=Value,y=Estimate.P)) + 
+    labs(x=paste0(prettyParameterName, ' (', unique(cdfsubset$Units), ')',sep=" "),y="Percentile") +
+    ggtitle(paste(indicator,prettyParameterName,"Percentile Graph ( n=",m,")",sep=" ")) + 
+    theme(plot.title = element_text(hjust=0.5,face='bold',size=15)) +
+    theme(axis.title = element_text(face='bold',size=12))+
+    
+    CDFsettings  +
+    
+    geom_point() +
+    geom_point(data=avg,color='orange',size=4) + geom_text(data=avg,label='Average',hjust=1.2) +
+    geom_point(data=med,color='gray',size=4)+ geom_text(data=med,label='Median',hjust=1.2) 
+  return(p1)
+}
+#cdfplot('pH', 'pH','Virginia',percentiles1[[parameter]],listOfListsOfCDFsettings[['pHsettingsCDF']])

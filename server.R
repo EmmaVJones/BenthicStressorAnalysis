@@ -168,7 +168,9 @@ shinyServer(function(input, output, session) {
       formatStyle('Risk_Category',backgroundColor=styleEqual(brksrisk,clrsrisk))  })
   
   
-  # output 
+  # Output Detailed Parameter Population Estimates
+  callModule(cdfSubpopSummary, 'parameterSummary', userData$stationData, userData$percentiles, listOfListsOfRiskTables, listOfListsOfCDFsettings)
+  
   
   
   

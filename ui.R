@@ -96,11 +96,12 @@ shinyUI(fluidPage(theme="yeti.css",
                                                                        downloadButton('report','Generate report of all CDF plots')))),
                                                  br(), hr(), br(),
                                                  h4('Detailed Parameter Population Estimates'),
-                                                 fluidRow(
-                                                   column(3, selectInput("parameterChoice", "Choose a parameter to investigate further.", choices = c('pH', 'DO'))),
-                                                   column(9, helpText("The drop down allows users to choose individual parameters by the appropriate subpopulation to provide
-                                                           additional context to where the station falls within a particular subpopulation."))),
-                                                 br(),br(),br(),br()),
+                                                 cdfSubpopSummaryUI('parameterSummary')),
+                                                 # fluidRow(
+                                                 #   column(3, selectInput("parameterChoice", "Choose a parameter to investigate further.", choices = c('pH', 'DO'))),
+                                                 #   column(9, helpText("The drop down allows users to choose individual parameters by the appropriate subpopulation to provide
+                                                 #           additional context to where the station falls within a particular subpopulation."))),
+                                                 # br(),br(),br(),br()),
                                         
                                         
                                         
