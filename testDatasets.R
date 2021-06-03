@@ -44,34 +44,52 @@ inputFile1 <- removeUnits_envDataDF(read.csv("testingData/TinkerMultistation/BSA
 # Suggest Ecoregion, Basin, Superbasin, and Order information 
 
 ## First pull this info from REST service and spatial joins
-initialSpatialSuggestions1 <- spatialSuggestions(inputFile1)
+initialSpatialSuggestions1 <- spatialSuggestions(inputFile1,  pool, subbasinVAHU6crosswalk, subbasins, ecoregion)
+allStats1 <- statsFunction(inputFile1)
 
 ## user selects station
 stationSelection1 <- "4ATKR000.69"
 
 # Subset site data
-siteData <- filter(inputFile1, StationID %in% stationSelection1) %>% 
+stationInitialSpatialSuggestions1 <- filter(initialSpatialSuggestions1, WQM_STA_ID %in% stationSelection1)
+stationData1 <- filter(inputFile1, StationID %in% stationSelection1) %>% 
   mutate(CollectionDateTime = as.POSIXct(as.character(CollectionDateTime), format =  '%Y-%m-%dT%H:%M:%S'))
-as.POSIXct(as.character(siteData$CollectionDateTime[1:5]), format =  '%Y-%m-%dT%H:%M:%S')
+#as.POSIXct(as.character(stationData1$CollectionDateTime[1:5]), format =  '%Y-%m-%dT%H:%M:%S')
 
+# user (potentially modified) metadata for site
+streamOrder1 <- "Third Order"
+ecoregion1 <- stationInitialSpatialSuggestions1$EPA_ECO_US_L3NAME
+basin1 <- stationInitialSpatialSuggestions1$ProbBasin
+superbasin1 <- stationInitialSpatialSuggestions1$ProbSuperBasin
   
-  
-  #summarise_all(list(min, max))
-  
-  summarise_at(vars(pH:DSodium), median, na.rm = TRUE)
-glimpse(stats)
+# Central tendency stats
+stationStats1 <- filter(allStats1, StationID %in% stationSelection1)
 
-# Deal with columns of only NA coming in as logical
-dat <- inputFile() %>% select(-(Temp))
-dat <- japply( dat, which(sapply(dat, class)=="logical"), as.numeric )
+# Site metadata info, suggested by app but captures what user changes it to
+stationMetadata1 <- list(StationID = stationSelection1, 
+                     `Stream Order` = streamOrder1, 
+                     Ecoregion = ecoregion1, 
+                     Basin = basin1, 
+                     SuperBasin = superbasin1) 
 
-datamean <- select(dat,-c(StationID,CollectionDateTime,Longitude,Latitude))%>%
-  summarise_all(funs(format(mean(., na.rm = TRUE),digits=4)))%>%mutate(Statistic="Average")
-datamean[datamean %in% c("NaN","NA")] <- NA
-datamedian <- select(dat,-c(StationID,CollectionDateTime,Longitude,Latitude))%>%
-  summarise_all(funs(format(median(., na.rm = TRUE),digits=4)))%>%mutate(Statistic="Median")
-datamedian[datamedian %in% c("NaN","NA")] <- NA
-data_all <- rbind(datamean,datamedian)%>%select(Statistic,everything())
-return(data_all)
+# List to store all percentile results for later use
+percentiles1 <- list(pH = percentileTable(stationStats1, "pH", stationMetadata1),
+                     `Dissolved Oxygen` = percentileTable(stationStats1, "Dissolved Oxygen", stationMetadata1),
+                     `Total Nitrogen` = percentileTable(stationStats1, "Total Nitrogen", stationMetadata1),
+                     `Total Phosphorus` = percentileTable(stationStats1, "Total Phosphorus", stationMetadata1),
+                     `Total Habitat` = percentileTable(stationStats1, "Total Habitat", stationMetadata1),
+                     LRBS = percentileTable(stationStats1, "LRBS", stationMetadata1),
+                     MetalsCCU = percentileTable(stationStats1, "MetalsCCU", stationMetadata1),
+                     `Specific Conductance` = percentileTable(stationStats1, "Specific Conductance", stationMetadata1),
+                     `Total Dissolved Solids` = percentileTable(stationStats1, "Total Dissolved Solids", stationMetadata1),
+                     Sulfate = percentileTable(stationStats1, "Sulfate", stationMetadata1),
+                     Chloride = percentileTable(stationStats1, "Chloride", stationMetadata1),
+                     Potassium = percentileTable(stationStats1, "Potassium", stationMetadata1),
+                     Sodium = percentileTable(stationStats1, "Sodium", stationMetadata1))
+                             
 
+
+### pH Table Tab
+callModule(parameterSummaryTab,'pH_Summary',userData[["percentiles"]][["pH"]],'unitless',pHRiskTable)
+callModule(cdfSubpopPlot,"pH_CDFplot","pH", "pH", userData[["percentiles"]][["pH"]],pHRiskTable, pHsettingsCDF)
 

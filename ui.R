@@ -66,9 +66,9 @@ shinyUI(fluidPage(theme="yeti.css",
                                                     When you have entered these prerequisites, click the Begin Analysis button to proceed through
                                                     the application workflow."),
                                                  uiOutput('stationSelection_'),
-                                                 fluidRow(column(4, uiOutput('StreamOrder_')),
-                                                          column(4, uiOutput('Ecoregion_')),
-                                                          column(4, uiOutput('BasinSuperBasin_'))),
+                                                 fluidRow(column(4, uiOutput('streamOrder_')),
+                                                          column(4, uiOutput('ecoregion_')),
+                                                          column(4, uiOutput('basinSuperBasin_'))),
                                                  actionButton('begin', 'Begin Analysis'),
                                                  #verbatimTextOutput('test'),
                                                  br(), hr(),
@@ -79,7 +79,41 @@ shinyUI(fluidPage(theme="yeti.css",
                                                  DT::dataTableOutput('summaryStats'))),
 
                              tabPanel("Data Summary",
-                                      h3('Requires updating')),
+                                      tabsetPanel(
+                                        tabPanel('Benthic Stressor Categories',
+                                                 h4('Composite Table'),
+                                                 helpText("The table below marks up the selected station's central tendency statistics using the benthic stressor threshold 
+                                               categories. You may export the table below as a .csv, .xlsx, or .pdf by clicking the corresponding
+                                               button below. If you want the color background formatting, you need to manually select the 
+                                               table with your cursor to copy all associated formatting to a spreadsheet program."),
+                                                 DT::dataTableOutput('compositeTable'),
+                                                 fluidRow(
+                                                   column(3,DT::dataTableOutput('bethicStressorColors')),br(),br(),
+                                                   column(4, wellPanel(h4('Report Output:'),
+                                                                       helpText('Click below to save a .HTML version of all the tables and graphics associated with 
+                                                                           the input station. You can save this to a .pdf after initial HTML conversion 
+                                                                           (File -> Print -> Save as PDF).'),
+                                                                       downloadButton('report','Generate report of all CDF plots')))),
+                                                 br(), hr(), br(),
+                                                 h4('Detailed Parameter Population Estimates'),
+                                                 fluidRow(
+                                                   column(3, selectInput("parameterChoice", "Choose a parameter to investigate further.", choices = c('pH', 'DO'))),
+                                                   column(9, helpText("The drop down allows users to choose individual parameters by the appropriate subpopulation to provide
+                                                           additional context to where the station falls within a particular subpopulation."))),
+                                                 br(),br(),br(),br()),
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        tabPanel("Reference Stress Comparison"),
+                                        tabPanel("Parameter Scatterplot"),
+                                        tabPanel("Parameter Boxplot")
+                                        )),
+                                      
+                                      
+                                      
                              tabPanel("Statewide Map",
                                       h3('Requires updating')),
                              tabPanel("Dissolved Metals",

@@ -17,11 +17,11 @@ library(geojsonsf)
 conn <- config::get("connectionSettings") # get configuration settings
 
 
-board_register_rsconnect(key = conn$CONNECT_API_KEY,  #Sys.getenv("CONNECT_API_KEY"),
-                         server = conn$CONNECT_SERVER)#Sys.getenv("CONNECT_SERVER"))
-
-
-## For testing: connect to ODS production
+# board_register_rsconnect(key = conn$CONNECT_API_KEY,  #Sys.getenv("CONNECT_API_KEY"),
+#                          server = conn$CONNECT_SERVER)#Sys.getenv("CONNECT_SERVER"))
+# 
+# 
+# ## For testing: connect to ODS production
 # pool <- dbPool(
 #  drv = odbc::odbc(),
 #  Driver = "ODBC Driver 11 for SQL Server",#"SQL Server Native Client 11.0",
@@ -31,32 +31,62 @@ board_register_rsconnect(key = conn$CONNECT_API_KEY,  #Sys.getenv("CONNECT_API_K
 # )
 
 # For deployment on the R server: Set up pool connection to production environment
-pool <- dbPool(
-  drv = odbc::odbc(),
-  Driver = "SQLServer",   # note the LACK OF space between SQL and Server ( how RStudio named driver)
-  # Production Environment
-  Server= "DEQ-SQLODS-PROD,50000",
-  dbname = "ODS",
-  UID = conn$UID_prod,
-  PWD = conn$PWD_prod,
-  #UID = Sys.getenv("userid_production"), # need to change in Connect {vars}
-  #PWD = Sys.getenv("pwd_production")   # need to change in Connect {vars}
-  # Test environment
-  #Server= "WSQ04151,50000",
-  #dbname = "ODS_test",
-  #UID = Sys.getenv("userid"),  # need to change in Connect {vars}
-  #PWD = Sys.getenv("pwd"),  # need to change in Connect {vars}
-  trusted_connection = "yes"
-)
+# pool <- dbPool(
+#   drv = odbc::odbc(),
+#   Driver = "SQLServer",   # note the LACK OF space between SQL and Server ( how RStudio named driver)
+#   # Production Environment
+#   Server= "DEQ-SQLODS-PROD,50000",
+#   dbname = "ODS",
+#   UID = conn$UID_prod,
+#   PWD = conn$PWD_prod,
+#   #UID = Sys.getenv("userid_production"), # need to change in Connect {vars}
+#   #PWD = Sys.getenv("pwd_production")   # need to change in Connect {vars}
+#   # Test environment
+#   #Server= "WSQ04151,50000",
+#   #dbname = "ODS_test",
+#   #UID = Sys.getenv("userid"),  # need to change in Connect {vars}
+#   #PWD = Sys.getenv("pwd"),  # need to change in Connect {vars}
+#   trusted_connection = "yes"
+# )
 
 onStop(function() {
   poolClose(pool)
 })
 
+# Source functions from elsewhere
+source('functionsAndModules/riskColors.R')
+source('functionsAndModules/vlookup.R')
+
+
+
+# Local data for upload
+template <- read_csv('data/template.csv')
 geospatialTemplate <- readRDS('data/geospatialTemplate.RDS')
 subbasinVAHU6crosswalk <- read_csv('data/basinAssessmentReg_clb_EVJ.csv') %>%
   filter(!is.na(SubbasinVAHU6code)) %>%
   mutate(SUBBASIN = ifelse(is.na(SUBBASIN), BASIN_NAME, SUBBASIN))
+
+
+# one day these won't need to be converted
+cdfdata <- readRDS('data/IR2020probMonCDFestimates.RDS') %>%  ### UPDATED CDF DATA AFTER 2020IR REPORT
+  mutate(Subpopulation = case_when(Subpopulation == 'Roanoke Basin' ~ 'Roanoke', 
+                                   Subpopulation == 'James Basin' ~ 'James',
+                                   Subpopulation == 'Central Appalachian Ridges and Valleys' ~'Ridge and Valley',
+                                   Subpopulation == "Blue Ridge Mountains" ~ "Blue Ridge", 
+                                   TRUE ~ as.character(Subpopulation)),
+         Indicator = case_when(Indicator == 'DO' ~ 'Dissolved Oxygen',
+                               Indicator == 'TN' ~ 'Total Nitrogen',
+                               Indicator == 'TP' ~ 'Total Phosphorus',
+                               Indicator == 'TotHab' ~ 'Total Habitat',
+                               Indicator == 'MetalCCU' ~ 'MetalsCCU',
+                               Indicator == 'SpCond' ~ 'Specific Conductance',
+                               Indicator == 'TDS' ~ 'Total Dissolved Solids',
+                               Indicator == 'Sf' ~ 'Sulfate',
+                               Indicator == 'Cl' ~ 'Chloride',
+                               Indicator == 'K' ~ 'Potassium',
+                               Indicator == 'Na' ~ 'Sodium',
+                               TRUE ~ as.character(Indicator)))
+
 
 
 addUnits_envDataDF <- function(envData){
@@ -70,13 +100,13 @@ addUnits_envDataDF <- function(envData){
 }
 
 removeUnits_envDataDF <- function(envData){
-  return(rename(envData,  pH = "pH..unitless.", DO = "DO..mg.L." , TN =  "TN..mg.L.", 
-                TP = "TP..mg.L.", TotalHabitat = "Total.Habitat..unitless.",
+  return(rename(envData,  pH = "pH..unitless.", 'Dissolved Oxygen' = "DO..mg.L." , 'Total Nitrogen' =  "TN..mg.L.", 
+                'Total Phosphorus' = "TP..mg.L.", 'Total Habitat' = "Total.Habitat..unitless.",
                 LRBS =  "LRBS..unitless." , MetalsCCU = "MetalsCCU..unitless.",
-                SpCond = "SpCond..uS.cm.",  TDS = "TDS..mg.L." ,  
-                DSulfate = "DSulfate..mg.L.", DChloride= "DChloride..mg.L.", 
-                DPotassium = "DPotassium..mg.L.", DSodium = "DSodium..mg.L.",
-                Temp = "Temperature..C.") %>% as_tibble())
+                'Specific Conductance' = "SpCond..uS.cm.",  'Total Dissolved Solids' = "TDS..mg.L." ,  
+                Sulfate = "DSulfate..mg.L.", Chloride= "DChloride..mg.L.", 
+                Potassium = "DPotassium..mg.L.", Sodium = "DSodium..mg.L.",
+                Temperature = "Temperature..C.") %>% as_tibble())
 }
 
 
@@ -152,17 +182,44 @@ spatialSuggestions <- function(inFile, pool, subbasinVAHU6crosswalk, subbasins, 
 # Site Stats Function
 statsFunction <- function(siteData){
   siteDataPrep <- siteData %>% 
-    dplyr::select(-c(Temp, CollectionDateTime, Longitude, Latitude)) %>% 
+    dplyr::select(-c(Temperature, CollectionDateTime, Longitude, Latitude)) %>% 
     mutate(across(where(is.logical), as.numeric)) %>% 
     mutate(across(where(is.integer), as.numeric)) %>% 
     group_by(StationID) 
   bind_rows(siteDataPrep %>% 
-              summarise(across(pH:DSodium, ~ mean(.x, na.rm = TRUE))) %>% 
+              summarise(across(pH:Sodium, ~ mean(.x, na.rm = TRUE))) %>% 
               mutate(Statistic = 'Average'),
             siteDataPrep %>% 
-              summarise(across(pH:DSodium, ~ median(.x, na.rm = TRUE))) %>% 
+              summarise(across(pH:Sodium, ~ median(.x, na.rm = TRUE))) %>% 
               mutate(Statistic = 'Median')) %>% 
     dplyr::select(StationID, Statistic, everything()) %>% 
     arrange(StationID, Statistic)
 }
 #statsFunction(inputFile1)
+
+# Return percentile 
+#statsTable <- stationStats1; parameter <- "pH"; stationMetadata <- stationMetadata1
+percentileTable <- function(statsTable, parameter, stationMetadata){
+  out <- dplyr::select(statsTable, Statistic, !! parameter) %>% 
+    pivot_wider(names_from = 'Statistic', values_from = !! parameter) %>% 
+    mutate(Statistic = stationMetadata$StationID) %>% 
+    select(Statistic,everything())
+  # make dataset of just indicator and parameter for vlookup function to operate on
+  va <- filter(cdfdata, Subpopulation == 'Virginia', Indicator == !! parameter) %>% select(Value, Estimate.P)
+  basin <- filter(cdfdata, Subpopulation == stationMetadata$Basin, Indicator == !! parameter) %>% select(Value, Estimate.P)
+  superbasin <- filter(cdfdata, Subpopulation == stationMetadata$SuperBasin, Indicator == !! parameter) %>% select(Value, Estimate.P)
+  eco <- filter(cdfdata, Subpopulation == stationMetadata$Ecoregion, Indicator == !! parameter) %>% select(Value, Estimate.P)
+  order <- filter(cdfdata, Subpopulation == stationMetadata$`Stream Order`, Indicator == !! parameter) %>% select(Value, Estimate.P)
+  
+  return(
+    bind_rows(out, 
+              tibble(Statistic='Virginia', Average = vlookup(out$Average, data.frame(va), 2, range=TRUE), Median = vlookup(out$Median, data.frame(va), 2, range=TRUE))) %>% 
+      {if(nrow(superbasin) > 0)
+        bind_rows(  tibble(Statistic = stationMetadata$SuperBasin, Average = vlookup(out$Average, superbasin, 2, TRUE), Median = vlookup(out$Median, superbasin, 2, TRUE)) )
+        else . } %>% #bind_rows( .,  tibble(Statistic = NA, Average = NA, Median = NA)) } %>% 
+      bind_rows(tibble(Statistic = stationMetadata$Basin, Average=vlookup(out$Average, data.frame(basin), 2, TRUE), Median = vlookup(out$Median, data.frame(basin), 2, TRUE)),
+                tibble(Statistic = stationMetadata$Ecoregion, Average = vlookup(out$Average, data.frame(eco), 2, TRUE), Median = vlookup(out$Median, data.frame(eco), 2, TRUE)),
+                tibble(Statistic = stationMetadata$`Stream Order`, Average = vlookup(out$Average, data.frame(order), 2, TRUE), Median = vlookup(out$Median, data.frame(order), 2, TRUE))
+      ) ) }
+#percentileTable(stationStats1, 'SpCond', stationMetadata1)
+
