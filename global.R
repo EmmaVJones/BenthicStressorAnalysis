@@ -12,15 +12,16 @@ library(config)
 library(pins)
 library(pool)
 library(geojsonsf)
+library(plotly)
 
 # Server connection things
 conn <- config::get("connectionSettings") # get configuration settings
 
 
-# board_register_rsconnect(key = conn$CONNECT_API_KEY,  #Sys.getenv("CONNECT_API_KEY"),
-#                          server = conn$CONNECT_SERVER)#Sys.getenv("CONNECT_SERVER"))
-# 
-# 
+board_register_rsconnect(key = conn$CONNECT_API_KEY,  #Sys.getenv("CONNECT_API_KEY"),
+                         server = conn$CONNECT_SERVER)#Sys.getenv("CONNECT_SERVER"))
+
+
 # ## For testing: connect to ODS production
 # pool <- dbPool(
 #  drv = odbc::odbc(),
@@ -57,7 +58,7 @@ onStop(function() {
 source('functionsAndModules/riskColors.R')
 source('functionsAndModules/vlookup.R')
 source('functionsAndModules/CDFsubpopModule.R')
-
+source('functionsAndModules/functionsFromWQMdataQueryTool.R')
 
 # Local data for upload
 template <- read_csv('data/template.csv')
@@ -95,6 +96,22 @@ probIndicators <- filter(unitData, AltName %in% #names(basicData))$AltName
                              "Potassium", "Chloride", "Sulfate", "Suspended Sediment Concentration Coarse", "Suspended Sediment Concentration Fine",
                              "Arsenic", "Barium", "Beryllium", "Cadmium", "Chromium", "Copper", "Iron", "Lead", "Manganese", "Thallium", "Nickel",                                 
                              "Silver", "Zinc", "Antimony", "Aluminum", "Selenium", "Hardness"))
+
+# WQS information for functions
+# From: 9VAC25-260-50. Numerical Criteria for Dissolved Oxygen, Ph, and Maximum Temperature
+# https://law.lis.virginia.gov/admincode/title9/agency25/chapter260/section50/
+WQSvalues <- tibble(CLASS_BASIN = c('I',"II","II_7","III","IV","V","VI","VII"),
+                    CLASS = c('I',"II","II","III","IV","V","VI","VII"),
+                    `Description Of Waters` = c('Open Ocean', 'Tidal Waters in the Chowan Basin and the Atlantic Ocean Basin',
+                                                'Tidal Waters in the Chesapeake Bay and its tidal tributaries',
+                                                'Nontidal Waters (Coastal and Piedmont Zone)','Mountainous Zone Waters',
+                                                'Stockable Trout Waters','Natural Trout Waters','Swamp Waters'),
+                    `Dissolved Oxygen Min (mg/L)` = c(5,4,NA,4,4,5,6,NA),
+                    `Dissolved Oxygen Daily Avg (mg/L)` = c(NA,5,NA,5,5,6,7,NA),
+                    `pH Min` = c(6,6,6.0,6.0,6.0,6.0,6.0,3.7),
+                    `pH Max` = c(9.0,9.0,9.0,9.0,9.0,9.0,9.0,8.0),
+                    `Max Temperature (C)` = c(NA, NA, NA, 32, 31, 21, 20, NA)) %>%
+  mutate(CLASS_DESCRIPTION = paste0(CLASS, " | ", `Description Of Waters`))
 
 
 addUnits_envDataDF <- function(envData){

@@ -27,6 +27,9 @@ subbasinVAHU6crosswalk <- read_csv('data/basinAssessmentReg_clb_EVJ.csv') %>%
 # saveRDS(geospatialTemplate, 'geospatialTemplate.RDS')
 geospatialTemplate <- readRDS('data/geospatialTemplate.RDS')
 
+WQSlookup <- pin_get("WQSlookup-withStandards",  board = "rsconnect")
+
+
 pool <- dbPool(
   drv = odbc::odbc(),
   Driver = "ODBC Driver 11 for SQL Server",#"SQL Server Native Client 11.0",
@@ -89,7 +92,4 @@ percentiles1 <- list(pH = percentileTable(stationStats1, "pH", stationMetadata1)
                              
 
 
-### pH Table Tab
-callModule(parameterSummaryTab,'pH_Summary',userData[["percentiles"]][["pH"]],'unitless',pHRiskTable)
-callModule(cdfSubpopPlot,"pH_CDFplot","pH", "pH", userData[["percentiles"]][["pH"]],pHRiskTable, pHsettingsCDF)
 

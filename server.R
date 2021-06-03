@@ -21,6 +21,7 @@ subbasins <- st_read('data/GIS/DEQ_VAHUSB_subbasins_EVJ.shp') %>%
                                     SUBBASIN %in% c('Potomac River', 'Shenandoah River') ~ 'Potomac-Shenandoah',
                                     SUBBASIN %in% c('Rappahannock River', 'York River') ~ 'Rappahannock-York',
                                     TRUE ~ as.character(NA)))
+WQSlookup <- pin_get("WQSlookup-withStandards",  board = "rsconnect")
 
 
 
@@ -148,18 +149,18 @@ shinyServer(function(input, output, session) {
                                                  list(extend='excel',filename=paste('CompositeTable_',Sys.Date(),sep='')),
                                                  list(extend='pdf',orientation='landscape',filename=paste('CompositeTable_',Sys.Date(),sep='')))))%>%
       formatStyle("pH", backgroundColor = styleInterval(pHRiskTable$brks, pHRiskTable$clrs))%>%
-      formatStyle("Dissolved Oxygen", backgroundColor = styleInterval(DORiskTable$brks, DORiskTable$clrs)) %>%
-      formatStyle("Total Nitrogen", backgroundColor = styleInterval(TNRiskTable$brks, TNRiskTable$clrs))%>%
-      formatStyle("Total Phosphorus", backgroundColor = styleInterval(TPRiskTable$brks, TPRiskTable$clrs))%>%
-      formatStyle("Total Habitat", backgroundColor = styleInterval(TotHabRiskTable$brks, TotHabRiskTable$clrs))%>%
+      formatStyle("Dissolved Oxygen", backgroundColor = styleInterval(`Dissolved OxygenRiskTable`$brks, `Dissolved OxygenRiskTable`$clrs)) %>%
+      formatStyle("Total Nitrogen", backgroundColor = styleInterval(`Total NitrogenRiskTable`$brks, `Total NitrogenRiskTable`$clrs))%>%
+      formatStyle("Total Phosphorus", backgroundColor = styleInterval(`Total PhosphorusRiskTable`$brks, `Total PhosphorusRiskTable`$clrs))%>%
+      formatStyle("Total Habitat", backgroundColor = styleInterval(`Total HabitatRiskTable`$brks, `Total HabitatRiskTable`$clrs))%>%
       formatStyle("LRBS", backgroundColor = styleInterval(LRBSRiskTable$brks, LRBSRiskTable$clrs))%>%
       formatStyle("MetalsCCU", backgroundColor = styleInterval(MetalsCCURiskTable$brks, MetalsCCURiskTable$clrs))%>%
-      formatStyle("Specific Conductance", backgroundColor = styleInterval(SpCondRiskTable$brks, SpCondRiskTable$clrs))%>%
-      formatStyle("Total Dissolved Solids", backgroundColor = styleInterval(TDSRiskTable$brks, TDSRiskTable$clrs))%>%
-      formatStyle("Sulfate", backgroundColor = styleInterval(DSulfateRiskTable$brks, DSulfateRiskTable$clrs))%>%
-      formatStyle("Chloride", backgroundColor = styleInterval(DChlorideRiskTable$brks, DChlorideRiskTable$clrs))%>%
-      formatStyle("Potassium", backgroundColor = styleInterval(DPotassiumRiskTable$brks, DPotassiumRiskTable$clrs))%>%
-      formatStyle("Sodium", backgroundColor = styleInterval(DSodiumRiskTable$brks, DSodiumRiskTable$clrs))
+      formatStyle("Specific Conductance", backgroundColor = styleInterval(`Specific ConductanceRiskTable`$brks, `Specific ConductanceRiskTable`$clrs))%>%
+      formatStyle("Total Dissolved Solids", backgroundColor = styleInterval(`Total Dissolved SolidsRiskTable`$brks, `Total Dissolved SolidsRiskTable`$clrs))%>%
+      formatStyle("Sulfate", backgroundColor = styleInterval(SulfateRiskTable$brks, SulfateRiskTable$clrs))%>%
+      formatStyle("Chloride", backgroundColor = styleInterval(ChlorideRiskTable$brks, ChlorideRiskTable$clrs))%>%
+      formatStyle("Potassium", backgroundColor = styleInterval(PotassiumRiskTable$brks, PotassiumRiskTable$clrs))%>%
+      formatStyle("Sodium", backgroundColor = styleInterval(SodiumRiskTable$brks, SodiumRiskTable$clrs))
   }, digits=4,border=TRUE)
   
   # Output table of risk categories
@@ -169,17 +170,56 @@ shinyServer(function(input, output, session) {
   
   
   # Output Detailed Parameter Population Estimates
-  callModule(cdfSubpopSummary, 'parameterSummary', userData$stationData, userData$percentiles, listOfListsOfRiskTables, listOfListsOfCDFsettings)
+  callModule(cdfSubpopSummary, 'parameterSummary',  reactive(userData$stationData), reactive(userData$percentiles), listOfListsOfRiskTables, listOfListsOfCDFsettings)#userData[["percentiles"]][["pH"]], 'unitless',pHRiskTable)
+  # need to send in userData info as reactive to make sure module updates as userData updates
+ 
+  
+  ### Reference Stress Comparison SubTab -----------------------------------------------------------------------------------------------------------------------------------
+  
+  ### Parameter Scatterplot SubTab -----------------------------------------------------------------------------------------------------------------------------------
+  
+  output$parameterPlotlySelectionUI <- renderUI({req(inputFile())
+    # only allow user to view parameters with data
+    choices <- pivot_longer(inputFile(), cols= pH:Sodium, names_to = 'variable', values_to = 'result') %>% 
+      filter(!is.na(result)) %>% distinct(variable) %>% pull()
+    selectInput('parameterPlotlySelection', 'Select a Parameter to Visualize', choices = choices)  })
+  
+  output$parameterPlot <- renderPlotly({ req(inputFile(), input$parameterPlotlySelection)
+    suppressWarnings(suppressMessages(
+      parameterPlotly(inputFile() %>%  mutate(`Collection Date` = as.Date(CollectionDateTime)), 
+                      input$parameterPlotlySelection, unitData, WQSlookup, input$addBSAcolors) ))   })
+  
+  #### Loess Smoothing Modal
+  observeEvent(input$smoothModal,{
+    showModal(modalDialog(
+      title="Parameter Plot with Loess (Locally Estimated Scatterplot Smoother) Function",
+      helpText('This plot is meant for exploratory data analysis to visualize general patterns in the data and and does not serve as a 
+                 robust trend analysis.'),
+      plotlyOutput('loessSmoothPlot'),
+      easyClose = TRUE))  })
+  
+  output$loessSmoothPlot <- renderPlotly({req(input$smoothModal, nrow(inputFile()) > 0)
+    basicLoessPlotFunction(inputFile() %>%  mutate(`Collection Date` = as.Date(CollectionDateTime)), input$parameterPlotlySelection)      })
+  
+  
+  ### Parameter Boxplot SubTab -----------------------------------------------------------------------------------------------------------------------------------
+  output$parameterBoxPlotlySelectionUI <- renderUI({req(inputFile())
+    # only allow user to view parameters with data
+    choices <- pivot_longer(inputFile(), cols= pH:Sodium, names_to = 'variable', values_to = 'result') %>% 
+      filter(!is.na(result)) %>% distinct(variable) %>% pull()
+    selectInput('parameterBoxPlotlySelection', 'Select a Parameter to Visualize', choices = choices)  })
+
+  output$parameterBoxplot <- renderPlotly({ req(inputFile(), input$parameterBoxPlotlySelection)
+    suppressWarnings(suppressMessages(
+      parameterBoxplotFunction(inputFile() %>%  mutate(`Collection Date` = as.Date(CollectionDateTime)), input$parameterBoxPlotlySelection, unitData, WQSlookup, input$addJitter) ))   })
   
   
   
   
-   output$test <- renderPrint({userData$stationMetadata})#userData$stationData})#req(initialSpatialSuggestions(), input$stationSelection)
+  
+   #output$test <- renderPrint({userData$percentiles})#userData$stationMetadata})#userData$stationData})#req(initialSpatialSuggestions(), input$stationSelection)
   #   userData$stationData})#stationInitialSpatialSuggestions()$EPA_ECO_US_L3NAME })#filter(initialSpatialSuggestions(), WQM_STA_ID %in% input$stationSelection)})
   # 
-  
-  
-  
   
   
 })

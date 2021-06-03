@@ -97,20 +97,31 @@ shinyUI(fluidPage(theme="yeti.css",
                                                  br(), hr(), br(),
                                                  h4('Detailed Parameter Population Estimates'),
                                                  cdfSubpopSummaryUI('parameterSummary')),
-                                                 # fluidRow(
-                                                 #   column(3, selectInput("parameterChoice", "Choose a parameter to investigate further.", choices = c('pH', 'DO'))),
-                                                 #   column(9, helpText("The drop down allows users to choose individual parameters by the appropriate subpopulation to provide
-                                                 #           additional context to where the station falls within a particular subpopulation."))),
-                                                 # br(),br(),br(),br()),
-                                        
-                                        
-                                        
-                                        
-                                        
-                                        
                                         tabPanel("Reference Stress Comparison"),
-                                        tabPanel("Parameter Scatterplot"),
-                                        tabPanel("Parameter Boxplot")
+                                        tabPanel("Parameter Scatterplot",
+                                                 h4('Interactive Parameter Scatter Plot'),
+                                                 helpText('Users may plot  all available parameters in the selected data window to visualize temporal changes.',
+                                                          span(strong('Where the information is available, the appropriate Water Quality Standard is
+                                                                                              plotted with the station data'))),
+                                                 helpText('The plot below can display the Benthic Stressor Analysis color palette to offer additional context for the
+                                                                                 selected water quality data. For more information on the Benthic Stressor Analysis parameter thresholds and data assumptions',
+                                                          span(strong(a('click here.', href='https://www.deq.virginia.gov/home/showpublisheddocument/4313/637461491358800000',
+                                                                        target='_blank')))),
+                                                 br(),br(), hr(),
+                                                 fluidRow(column(3, uiOutput('parameterPlotlySelectionUI')),
+                                                          column(3, checkboxInput('addBSAcolors', 'Display Benthic Stressor Analysis Colors on Plot')),
+                                                          column(3, actionButton('smoothModal', 'Plot with loess smoothing function'))),
+                                                 plotlyOutput('parameterPlot'), br(), br(), br()),
+                                        tabPanel("Parameter Boxplot",
+                                                 tabPanel('Parameter Boxplot',
+                                                          h4('Interactive Parameter Boxplot'),
+                                                          helpText('Based on the Simplified Field and Chemistry Dataset, users may plot
+                                                                                                     all available parameters in the selected data window to visualize individual station parameter ranges and statistics.',
+                                                                   span(strong('Where the information is available, the appropriate Water Quality Standard is
+                                                                                                                 plotted with the station data'))),
+                                                          fluidRow(column(3,  uiOutput('parameterBoxPlotlySelectionUI')),
+                                                                   column(3, checkboxInput('addJitter', 'Add jittered raw data'))),
+                                                          plotlyOutput('parameterBoxplot'), br(), br(), br()))
                                         )),
                                       
                                       
