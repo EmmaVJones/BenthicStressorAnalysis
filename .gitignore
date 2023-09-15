@@ -38,8 +38,9 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
-
+NRO_SuggestedReportStyles/
 oldTemplatesToReproduce/
 data/
 *.yml
 testingData/
+rsconnect/

@@ -19,7 +19,6 @@ library(readxl)
 
 This application is built in R 3.6.2 to comply with geospatial dependencies on the R server.
 
-
 ## Background
 
 This document walks users through all data acquisition and manipulation necessary for updating the BSA tool (with CEDS ODS connectivity).
@@ -27,6 +26,16 @@ This document walks users through all data acquisition and manipulation necessar
 ### ODS Connectivity
 
 Before beginning, make sure you have access to ODS production environment variables necessary to build the application.
+
+THios is new
+
+**bewlkj'alijfd'lasodj**
+
+| Co       | Col2 | Col3 |
+|----------|------|------|
+| item \`1 |      |      |
+| item2    |      |      |
+|          |      |      |
 
 ```{r ODS connectivity}
 # Server connection things
@@ -99,4 +108,3 @@ This is important for the mapping utility.
 ```{r}
 probSites <- read_csv('C:/HardDriveBackup/R/GitHub/ProbMon-Integrated-Reports/2020ProbChapter/processedData/Wadeable_ProbMon_2001-2018_Final_Final.csv')
 ```
-
